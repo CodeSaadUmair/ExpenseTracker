@@ -1,0 +1,23 @@
+[
+    {
+        "id": 1,
+        "description": "Rent",
+        "amount": 999.49,
+        "entryTime": "2025-03-10T19:22:41.570206",
+        "updationTime": "2025-03-10T19:22:41.570206"
+    },
+    {
+        "id": 4,
+        "description": "Power",
+        "amount": 87.05,
+        "entryTime": "2025-03-10T19:25:45.552573",
+        "updationTime": "2025-03-10T19:25:45.552573"
+    },
+    {
+        "id": 5,
+        "description": "Cleaner",
+        "amount": 19.56,
+        "entryTime": "2025-03-10T19:50:39.684356",
+        "updationTime": "2025-03-10T19:50:39.684356"
+    }
+]

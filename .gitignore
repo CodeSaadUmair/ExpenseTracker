@@ -1,0 +1,14 @@
+# Ignore virtual environment
+expense_env/
+
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore system-specific files
+Thumbs.db  # Windows
+
+# Ignore environment variables or secret keys (if any)
+.env
