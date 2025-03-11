@@ -1,7 +1,11 @@
+import requests
 import json
 from datetime import datetime
 import os
 from colorama import init, Fore, Back, Style
+from dotenv import load_dotenv
+
+load_dotenv() # Loads .env into os.environ
 
 
 EXP_FILE = "expenses.json"  # json file defination
@@ -13,17 +17,25 @@ init(autoreset=True)
 
 # Help Menu
 def show_help():
-    print()
-    print("-"*50)
-    print(Fore.RED+"\nAvalaible Commands ")
-    print(Back.YELLOW + Fore.RED + Style.BRIGHT + "\thelp - For This Menu")
-    print(Back.YELLOW + Fore.RED + Style.BRIGHT + "\tadd - To Add A Expence")
-    print(Back.YELLOW + Fore.RED + Style.BRIGHT + "\tlist - To List All The Expenses")
-    print(Back.YELLOW + Fore.RED + Style.BRIGHT + "\tupdate - To Update A Expence")
-    print(Back.YELLOW + Fore.RED + Style.BRIGHT + "\tdelete - To Delete A Expence")
-    print(Back.YELLOW + Fore.RED + Style.BRIGHT + "\texit -To Exit Program")
-    print()
-    print("-"*50)
+     
+    print("\n" + Fore.RED + Style.BRIGHT + " AVAILABLE COMMANDS ".center(50, "-"))
+    
+    commands = [
+        ("help", "For This Menu"),
+        ("add", "To Add an Expense"),
+        ("list", "To List All Expenses"),
+        ("upd", "To Update an Expense"),
+        ("del", "To Delete an Expense"),
+        ("sum", "To Summarize Expenses [Current Listed]"),
+        ("month", "To View Summary for a Specific Month (current year)"),
+        ("con", "To Convert Expenses Currency From USD To Other Types"),
+        ("exit", "To Exit the Program")
+    ]
+    
+    for cmd, desc in commands:
+        print(f"{Back.YELLOW}{Fore.BLACK}{Style.BRIGHT} {cmd.ljust(10)} {Style.RESET_ALL} {desc}")
+
+    print("-" * 50)
 
 
 # load json data
@@ -110,16 +122,17 @@ def list_expenses():
     if not expenses:
         print(Fore.RED + "No expenses available to List!" + Style.RESET_ALL)
         return
-    for expense in expenses:
-        print()
-        print(Style.RESET_ALL+"+"*50)
-        print(Fore.GREEN+"ID : ",expense["id"])
-        print(Fore.GREEN+"Description : ",expense["description"])
-        print(Fore.GREEN+"Amount : ",expense["amount"])
-        print(Fore.GREEN+"EntryTime : ",expense["entryTime"])
-        print(Fore.GREEN+"UpdationTime : ",expense["updationTime"])
-        print("+"*50)
-        print()
+    display_expenses(expenses)
+    # for expense in expenses:
+    #     print()
+    #     print(Style.RESET_ALL+"+"*50)
+    #     print(Fore.GREEN+"ID : ",expense["id"])
+    #     print(Fore.GREEN+"Description : ",expense["description"])
+    #     print(Fore.GREEN+"Amount : ",expense["amount"])
+    #     print(Fore.GREEN+"EntryTime : ",expense["entryTime"])
+    #     print(Fore.GREEN+"UpdationTime : ",expense["updationTime"])
+    #     print("+"*50)
+    #     print()
 
 
 # find expense by id for updation and deletion
@@ -129,16 +142,6 @@ def find_expense_by_id(expenses, expense_id):
         if expense["id"] == expense_id:
             return expense
     return None
-
-
-# show expense other than list used in update_expenses and delete_expenses
-def display_expenses(expenses):
-    """Display expenses in a neat tabular format."""
-    header = f"{'ID':<5}{'Description':<30}{'Amount':<10}"
-    print(Fore.BLUE + header + Style.RESET_ALL)
-    print(Fore.BLUE + "-" * len(header) + Style.RESET_ALL)
-    for expense in expenses:
-        print(Fore.GREEN + f"{expense['id']:<5}{expense['description']:<30}{expense['amount']:<10}" + Style.RESET_ALL)
 
 
 #update Expenses
@@ -191,7 +194,6 @@ def update_expenses():
     selected_expense["updationTime"] = new_uptime
     save_json(expenses)
     print(Fore.GREEN + "Expense updated successfully!" + Style.RESET_ALL)
-    
 
 
 # Delete Expence
@@ -222,6 +224,120 @@ def delete_expenses():
     save_json(expenses)
     print(Fore.GREEN + f"Expense '{expense_to_delete['description']}' deleted successfully!" + Style.RESET_ALL)
 
+
+# show expense used in update_expenses and delete_expenses list_Expenses
+def display_expenses(expenses):
+    """Display expenses in a neat tabular format."""
+    header = f"{'ID':<5}{'Description':<30}{'Amount':<10}{'Date':<15}"
+    print(Fore.BLUE + header + Style.RESET_ALL)
+    print(Fore.BLUE + "-" * len(header) + Style.RESET_ALL)
+    for expense in expenses:
+        date_str = expense["entryTime"].split("T")[0]
+        print(Fore.GREEN + f"{expense['id']:<5}{expense['description']:<30}{expense['amount']:<10}{date_str:<15}" + Style.RESET_ALL)
+
+
+#show summary of Expenses All
+def show_summary():
+    expenses = load_json()
+    header = f"{'ID':<5}{'Description':<30}{'Amount':<10}{'Date':<15}"
+    print(Fore.BLUE + header + Style.RESET_ALL)
+    print(Fore.BLUE + "-" * len(header) + Style.RESET_ALL)
+    summary = []
+    for expense in expenses:
+        date_str = expense["entryTime"].split("T")[0]
+        print(Fore.GREEN + f"{expense['id']:<5}{expense['description']:<30}{expense['amount']:<10}{date_str:<15}" + Style.RESET_ALL)
+        summary.append(expense['amount'])
+    print(Fore.BLUE + "-" * len(header) + Style.RESET_ALL)
+    total = sum(summary)
+    print(Fore.GREEN + f"{'':<5}{'Total':<30}{total:<10}" + Style.RESET_ALL)
+
+
+# Specific month summary
+def show_monthly_summary():
+    try:
+        month_input = input(Fore.WHITE + "Enter month (1-12): " + Style.RESET_ALL).strip()
+        month = int(month_input)
+        if month < 1 or month > 12:
+            print(Fore.RED + "Invalid month. Please enter a number between 1 and 12." + Style.RESET_ALL)
+            return
+    except ValueError:
+        print(Fore.RED + "Invalid input. Please enter a valid number for the month." + Style.RESET_ALL)
+        return
+
+    current_year = datetime.now().year
+
+    expenses = load_json()# function called
+
+    filtered_expenses = []
+
+    for expense in expenses:
+        try:
+            entry_date = datetime.fromisoformat(expense["entryTime"])
+        except ValueError:
+            continue  # skip any expense with an invalid date format
+        if entry_date.year == current_year and entry_date.month == month:
+            filtered_expenses.append(expense)
+
+    if not filtered_expenses:
+        print(Fore.YELLOW + f"No expenses found for {current_year}-{month:02d}." + Style.RESET_ALL)
+        return
+
+    # Display header with an extra Date column
+    header = f"{'ID':<5}{'Description':<30}{'Amount':<10}{'Date':<15}"
+    print(Fore.BLUE + header + Style.RESET_ALL)
+    print(Fore.BLUE + "-" * len(header) + Style.RESET_ALL)
+
+    total = 0
+    for expense in filtered_expenses:
+        total += expense["amount"]
+        # Extract only the date portion from the entryTime
+        date_str = expense["entryTime"].split("T")[0]
+        print(Fore.GREEN + f"{expense['id']:<5}{expense['description']:<30}{expense['amount']:<10}{date_str:<15}" + Style.RESET_ALL)
+
+    print(Fore.BLUE + "-" * len(header) + Style.RESET_ALL)
+    print(Fore.GREEN + f"{'':<5}{'Total':<30}{total:<10}" + Style.RESET_ALL)
+
+
+# convert_currency Function
+def convert_currency(amount, from_currency="USD", to_currency="EUR"):
+    api_key = os.environ.get('EXCHANGE_API_KEY')
+
+    if not api_key:
+        print("API key not found. Please set the EXCHANGE_API_KEY environment variable.")
+        return None
+    
+    url = f"https://api.exchangerate.host/convert?access_key={api_key}&from={from_currency}&to={to_currency}&amount={amount}"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+        return data.get("result")
+    except requests.RequestException as e:
+        print("Error retrieving conversion rate:", e)
+        return None
+
+
+# Conert_Expenses Function
+def convert_expenses():
+    target_currency = input("Enter the target currency code (e.g., EUR, GBP, INR): ").upper().strip()
+    expenses = load_json()
+    if not expenses:
+        print("No expenses available for conversion.")
+        return
+    
+    header = f"{'ID':<5}{'Description':<30}{'Original (USD)':<15}{'Converted (' + target_currency + ')':<20}"
+    print(header)
+    print("-" * len(header))
+
+    for expense in expenses:
+        original_amount = expense['amount']
+        converted_amount = convert_currency(original_amount, "USD", target_currency) # Function Called
+        if converted_amount is not None:
+            print(f"{expense['id']:<5}{expense['description']:<30}{original_amount:<15}{converted_amount:<20}")
+        else:
+            print(f"Conversion failed for Expense ID {expense['id']}")
+
+
 # Main Function
 def main():
     init(autoreset=True)  
@@ -238,16 +354,23 @@ def main():
             add_expense()
         elif command == "list":
             list_expenses()
-        elif command == "update":
+        elif command == "upd":
             update_expenses()
-        elif command == "delete":
+        elif command == "del":
             delete_expenses()
+        elif command == "sum":
+            show_summary()
+        elif command == "month":
+            show_monthly_summary()
+        elif command == "con":
+            convert_expenses()
         elif command == "exit":
             print("GoodBye User!")
             break
         else:
             print(Back.RED+"Please Enter Valid Command")
             show_help()
+
 
 if __name__ == "__main__":
     main()
